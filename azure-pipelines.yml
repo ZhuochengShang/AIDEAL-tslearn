@@ -1,0 +1,284 @@
+# Python package
+# Create and test a Python package on multiple Python versions.
+# Add steps that analyze code, save the dist with the build record, publish to a PyPI-compatible index, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/python
+
+trigger:
+- main
+
+jobs:
+
+- job: 'tests_linux'
+  pool:
+    vmImage: 'ubuntu-latest'
+  strategy:
+    matrix:
+      Python310:
+        python.version: '3.10'
+      Python311:
+        python.version: '3.11'
+      Python312:
+        python.version: '3.12'
+      Python313:
+        python.version: '3.13'
+      Python314:
+        python.version: '3.14'
+  variables:
+    OMP_NUM_THREADS: '2'
+    NUMBA_NUM_THREADS: '2'
+    PIP_PREFER_BINARY: 'true'
+
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '$(python.version)'
+    displayName: 'Use Python $(python.version)'
+
+  - script: |
+      set -xe
+      python --version
+      python -m pip install --no-cache-dir --upgrade pip
+      python -m pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu .[tests,all_features]
+    displayName: 'Install tslearn all_features and dependencies for tests'
+
+  - script: |
+      set -xe
+      python -m pip install --no-cache-dir pytest-azurepipelines
+      pip list
+      python -m pytest -v --doctest-modules
+    displayName: 'Test'
+
+- job: 'tests_macOS_intel'
+  pool:
+    vmImage: 'macos-latest'
+  strategy:
+    matrix:
+      Python310:
+        python.version: '3.10'
+      Python311:
+        python.version: '3.11'
+      Python312:
+        python.version: '3.12'
+  variables:
+    OMP_NUM_THREADS: '2'
+    NUMBA_NUM_THREADS: '2'
+    PIP_PREFER_BINARY: 'true'
+
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '$(python.version)'
+    displayName: 'Use Python $(python.version)'
+
+  - script: |
+      set -xe
+      python --version
+      brew install openblas  # required due to https://github.com/numpy/numpy/issues/15947
+      export OPENBLAS=$(brew --prefix openblas)
+      python -m pip install --no-cache-dir --upgrade pip
+      python -m pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu .[tests,all_features]
+    displayName: 'Install tslearn all_features and dependencies for tests'
+
+  - script: |
+      set -xe
+      python -m pip install pytest-azurepipelines
+      pip list
+      python -m pytest -v --doctest-modules
+    displayName: 'Test'
+
+- job: 'tests_macOS_arm'
+  pool:
+    vmImage: 'macos-15-arm64'
+  strategy:
+    matrix:
+      Python311:
+        python.version: '3.11'
+      Python312:
+        python.version: '3.12'
+      Python313:
+        python.version: '3.13'
+      Python314:
+        python.version: '3.14'
+  variables:
+    OMP_NUM_THREADS: '2'
+    NUMBA_NUM_THREADS: '2'
+    PIP_PREFER_BINARY: 'true'
+
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '$(python.version)'
+    displayName: 'Use Python $(python.version)'
+
+  - script: |
+      set -xe
+      python --version
+      brew install openblas  # required due to https://github.com/numpy/numpy/issues/15947
+      export OPENBLAS=$(brew --prefix openblas)
+      python -m pip install --no-cache-dir --upgrade pip
+      python -m pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu .[tests,all_features]
+    displayName: 'Install tslearn all_features and dependencies for tests'
+
+  - script: |
+      set -xe
+      python -m pip install pytest-azurepipelines
+      pip list
+      python -m pytest -v --doctest-modules
+    displayName: 'Test'
+
+- job: 'tests_windows'
+  pool:
+    vmImage: 'windows-latest'
+  strategy:
+    matrix:
+      Python310:
+        python.version: '3.10'
+      Python311:
+        python.version: '3.11'
+      Python312:
+        python.version: '3.12'
+      Python313:
+        python.version: '3.13'
+      Python314:
+        python.version: '3.14'
+  variables:
+    OMP_NUM_THREADS: '2'
+    NUMBA_NUM_THREADS: '2'
+    PIP_PREFER_BINARY: 'true'
+
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '$(python.version)'
+
+  - script: |
+      python --version
+      python -m pip install --no-cache-dir --upgrade pip
+      python -m pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu .[tests,all_features]
+    displayName: 'Install tslearn all_features and dependencies for tests'
+
+  - script: |
+      python -m pip install --no-cache-dir pytest-azurepipelines
+      pip list
+      python -m pytest -v --doctest-modules
+    displayName: 'Test'
+
+- job: 'tests_basic'
+  pool:
+    vmImage: 'ubuntu-latest'
+  variables:
+    OMP_NUM_THREADS: '2'
+    NUMBA_NUM_THREADS: '2'
+    PIP_PREFER_BINARY: 'true'
+
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.10'
+    displayName: 'Use Python 3.10'
+
+  - script: |
+      set -xe
+      python --version
+      python -m pip install --no-cache-dir --upgrade pip
+      python -m pip install --no-cache-dir .[tests]
+    displayName: 'Install tslearn and dependencies for tests'
+
+  - script: |
+      set -xe
+      python -m pip install pytest-azurepipelines
+      pip list
+      python -m pytest -v --doctest-modules
+    displayName: 'Test'
+
+- job: 'tests_sklearn_version'
+  pool:
+    vmImage: 'ubuntu-latest'
+  strategy:
+    matrix:
+      sklearn1_5:
+        skLearnVersion: '1.5.0'
+      sklearn1_6:
+        skLearnVersion: '1.6.0'
+      sklearn1_7:
+        skLearnVersion: '1.7.0'
+      sklearn1_8:
+        skLearnVersion: '1.8.0'
+  variables:
+    OMP_NUM_THREADS: '2'
+    NUMBA_NUM_THREADS: '2'
+    PIP_PREFER_BINARY: 'true'
+
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.11'
+    displayName: 'Use Python 3.11'
+
+  - script: |
+      set -xe
+      python --version
+      python -m pip install --no-cache-dir --upgrade pip
+      python -m pip install --no-cache-dir 'scikit-learn~=$(skLearnVersion)'
+      python -m pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu .[tests,all_features]
+    displayName: 'Install tslearn all_features and dependencies for tests'
+
+  - script: |
+      set -xe
+      python -m pip install --no-cache-dir pytest-azurepipelines
+      pip list
+      python -m pytest -v --doctest-modules
+    displayName: 'Test sklearn versions'
+
+
+- job: 'codecov'  # must be a separate job to only disable Numbas's JIT here
+  pool:
+    vmImage: 'ubuntu-latest'
+  variables:
+    OMP_NUM_THREADS: '2'
+    NUMBA_NUM_THREADS: '2'
+    PIP_PREFER_BINARY: 'true'
+
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.12'
+    displayName: 'Use Python 3.12'
+
+  - script: |
+      set -xe
+      python --version
+      python -m pip install --no-cache-dir --upgrade pip
+      python -m pip install --no-cache-dir .[tests]
+    displayName: 'Install tslearn all_features and dependencies for tests'
+
+  - script: |
+      set -xe
+      python -m pip install --no-cache-dir pytest-azurepipelines
+      python -m pip install --no-cache-dir coverage pytest-cov
+      pip list
+      python -m pytest -v --cov=tests --cov=tslearn
+      python -m pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu .[all_features]
+      pip list
+      NUMBA_JIT_COVERAGE=1 python -m pytest -v --cov=tests --cov=tslearn --cov-append
+      pip install --no-cache-dir scikit-learn~=1.4.0
+      pip list
+      python -m pytest -v --cov=tests --cov=tslearn --cov-append  -k "test_all_estimators or test_scaler_allow_variable_length"
+    displayName: 'Test'
+
+  # Upload coverage to codecov.io
+  - script: |
+      set -xe
+      pip install codecov-cli
+      codecovcli --verbose upload-process --disable-search -f coverage.xml
+    env:
+      CODECOV_TOKEN: $(CODECOV_TOKEN_SECRET)
+    displayName: 'Upload coverage to codecov.io'
+
+  - task: SonarQubePrepare@7
+    inputs:
+      SonarQube: 'sonarqube_inria'
+      scannermode: 'cli'
+    displayName: 'Prepare analysis'
+  - task: SonarQubeAnalyze@7
+    displayName: 'Run analysis'
